@@ -4,6 +4,7 @@ import (
 	"cli-task-tracker/internal/models"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 )
 
@@ -18,7 +19,7 @@ var (
 
 type JsonStorage struct {
 	filePath string
-	Tasks    map[string]*models.Task
+	Tasks    map[int]*models.Task
 }
 
 func NewJsonStorage(filePath string) (*JsonStorage, error) {
@@ -29,7 +30,7 @@ func NewJsonStorage(filePath string) (*JsonStorage, error) {
 
 	storage := &JsonStorage{
 		filePath: filePath,
-		Tasks:    make(map[string]*models.Task),
+		Tasks:    make(map[int]*models.Task),
 	}
 
 	_, err := os.Stat(filePath)
@@ -42,17 +43,17 @@ func NewJsonStorage(filePath string) (*JsonStorage, error) {
 		return nil, ErrFileCreated
 	}
 
-	if err := storage.LoadTask(); err != nil {
-		return nil, ErrCantLoadFile
+	if err := storage.LoadTasks(); err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrCantLoadFile, err)
 	}
 
 	return storage, nil
 }
 
-func (storage *JsonStorage) LoadTask() error {
+func (storage *JsonStorage) LoadTasks() error {
 	file, err := os.Open(storage.filePath)
 	if err != nil {
-		return ErrCantLoadFile
+		return fmt.Errorf("failed to open file : %w", err)
 	}
 
 	defer file.Close()
@@ -60,18 +61,18 @@ func (storage *JsonStorage) LoadTask() error {
 	fileInfo, err := file.Stat()
 
 	if err != nil {
-		createFile(storage.filePath)
+		return fmt.Errorf("Failed to get file info: %w", err)
 	}
 
 	if fileInfo.Size() == 0 {
-		storage.Tasks = make(map[string]*models.Task)
+		storage.Tasks = make(map[int]*models.Task)
 		return nil
 	}
 
 	decoder := json.NewDecoder(file)
 
-	var tasks = make(map[string]*models.Task)
-	if err := decoder.Decode(&storage.Tasks); err != nil {
+	var tasks = make(map[int]*models.Task)
+	if err := decoder.Decode(&tasks); err != nil {
 		return ErrCantDecodeFile
 	}
 
@@ -80,8 +81,15 @@ func (storage *JsonStorage) LoadTask() error {
 
 }
 
+//os.O_RDONLY - Open the file for reading only.
+//os.O_WRONLY - Open the file for writing only.
+//os.O_RDWR - Open the file for both reading and writing.
+//os.O_CREATE - Create the file if it doesn’t exist.
+//os.O_APPEND - Append data to the file.
+//os.O_TRUNC - Truncate the file to zero size if it already exists.
+
 func createFile(filePath string) error {
-	file, err := os.Create(filePath)
+	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return err
 	}
