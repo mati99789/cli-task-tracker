@@ -13,6 +13,11 @@ const (
 	Done       Status = "Done"
 )
 
+var (
+	ErrEmptyDescirption = errors.New("Empty description")
+	ErrInvalidStatus    = errors.New("Invalid status")
+)
+
 type Task struct {
 	Id          int       `json:"id"`
 	Description string    `json:"description"`
@@ -24,27 +29,31 @@ type Task struct {
 func CreateTask(id int, description string, status Status) (*Task, error) {
 
 	if len(description) == 0 {
-		return nil, errors.New("description is required")
+		return nil, ErrEmptyDescirption
 	}
 
-	if err := status.ValidStatus(); err {
-		return nil, errors.New("invalid status")
+	if err := status.IsValid(); err {
+		return nil, ErrInvalidStatus
 	}
 
 	return &Task{
 		Id:          id,
 		Description: description,
 		Status:      status,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
 	}, nil
 }
 
-func (s Status) ValidStatus() bool {
+func (s Status) IsValid() bool {
 	switch s {
 	case InProgress, ToDo, Done:
 		return true
 	default:
 		return false
 	}
+}
+
+func (s Status) String() string {
+	return string(s)
 }

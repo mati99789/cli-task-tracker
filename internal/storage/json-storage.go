@@ -5,15 +5,26 @@ import (
 	"errors"
 )
 
+var (
+	ErrEmptyFilePath = errors.New("file path is empty")
+	ErrTaskNotFound  = errors.New("task not found")
+)
+
 type JsonStorage struct {
-	Tasks map[string]*models.Task
+	filePath string
+	Tasks    map[string]*models.Task
 }
 
 func NewJsonStorage(filePath string) (*JsonStorage, error) {
 
 	if filePath == "" {
-		return nil, errors.New("filePath is empty")
+		return nil, ErrEmptyFilePath
 	}
 
-	return &JsonStorage{}, nil
+	storage := &JsonStorage{
+		filePath: filePath,
+		Tasks:    make(map[string]*models.Task),
+	}
+
+	return storage, nil
 }
